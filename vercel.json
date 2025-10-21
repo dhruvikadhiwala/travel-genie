@@ -1,14 +1,24 @@
 {
   "version": 2,
-  "functions": {
-    "api/*.ts": {
-      "runtime": "nodejs20.x"
+  "name": "travel-genie",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_TICKETMASTER_API_KEY": "@ticketmaster_api_key",
+    "VITE_OPENTRIPMAP_API_KEY": "@opentripmap_api_key",
+    "VITE_UNSPLASH_API_KEY": "@unsplash_api_key"
+  }
 }
-
-

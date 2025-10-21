@@ -1,25 +1,13 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
-    open: true
+    port: 3000,
   },
-  preview: {
-    port: 5173
+  define: {
+    global: 'globalThis',
   },
-  build: {
-    sourcemap: true
-  },
-  resolve: {
-    alias: {
-      '@/components': '/src/components',
-      '@/pages': '/src/pages',
-      '@/lib': '/src/lib'
-    }
-  }
-});
-
-
+})
