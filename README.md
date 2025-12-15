@@ -52,8 +52,19 @@ A personalized trip explorer that blends events, points of interest, photos, and
    npm run dev
    ```
 
-5. **Open your browser**
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open your browser**
    Navigate to `http://localhost:3000`
+
+## 🎯 For Class Assignment
+
+This project is configured for **local development**. Simply run `npm run dev` and access the app at `http://localhost:3000`.
+
+**Note:** Supabase authentication and database features work in development mode. Make sure your `.env` file has your Supabase credentials configured.
 
 ## 🔧 API Setup
 
