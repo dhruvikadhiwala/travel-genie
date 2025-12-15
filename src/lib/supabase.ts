@@ -14,15 +14,26 @@ if (import.meta.env.PROD) {
 let supabaseInstance = null
 try {
   if (supabaseUrl && supabaseAnonKey && supabaseUrl.trim() !== '' && supabaseAnonKey.trim() !== '') {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      }
-    })
+    // Clean the values (remove any extra whitespace)
+    const cleanUrl = supabaseUrl.trim()
+    const cleanKey = supabaseAnonKey.trim()
+    
+    // Validate URL format
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      console.error('Invalid Supabase URL format:', cleanUrl)
+      supabaseInstance = null
+    } else {
+      // Try creating client with minimal options first
+      supabaseInstance = createClient(cleanUrl, cleanKey)
+    }
   }
-} catch (error) {
+} catch (error: any) {
   console.error('Failed to initialize Supabase client:', error)
+  console.error('Error details:', {
+    message: error?.message,
+    name: error?.name,
+    stack: error?.stack
+  })
   supabaseInstance = null
 }
 
