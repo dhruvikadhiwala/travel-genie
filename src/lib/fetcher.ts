@@ -100,7 +100,7 @@ async function searchCityWithFallback(query: string): Promise<CityInfo[]> {
         uniqueCities.sort((a: any, b: any) => (b.importance || 0) - (a.importance || 0));
 
         // Limit to top 8 results to avoid overwhelming the user
-        return uniqueCities.slice(0, 8).map(city => ({
+        return uniqueCities.slice(0, 8).map((city: any) => ({
           name: city.name,
           country: city.country,
           lat: city.lat,

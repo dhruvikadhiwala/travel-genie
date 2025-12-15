@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom'
 import { Home } from './pages/Home'
 import { Trip } from './pages/Trip'
+import { MyTrips } from './pages/MyTrips'
+import { SharedTrip } from './pages/SharedTrip'
 
 function App() {
   return (
@@ -8,6 +10,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/trip/:city" element={<Trip />} />
+        <Route path="/my-trips" element={<MyTrips />} />
+        <Route path="/shared/:shareToken" element={<SharedTrip />} />
       </Routes>
     </div>
   )

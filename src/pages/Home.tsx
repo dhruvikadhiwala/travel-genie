@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { CitySearch } from '../components/CitySearch'
 import { CityInfo } from '../lib/types'
+import { db } from '../lib/supabase'
 
 export function Home() {
   const [loading, setLoading] = useState(false)
@@ -11,6 +12,20 @@ export function Home() {
   const handleCitySelect = async (city: CityInfo) => {
     setLoading(true)
     try {
+      // Save search history
+      try {
+        await db.saveSearch({
+          query: city.name,
+          city: city.name,
+          country: city.country,
+          lat: city.lat,
+          lon: city.lon,
+        })
+      } catch (error) {
+        // Silently fail if not logged in or other error
+        console.log('Could not save search history:', error)
+      }
+
       // Navigate to trip page with city name
       navigate(`/trip/${encodeURIComponent(city.name)}`)
     } catch (error) {

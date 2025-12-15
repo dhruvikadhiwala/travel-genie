@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Header } from '../components/Header'
@@ -8,15 +8,19 @@ import { WeatherChart } from '../components/WeatherChart'
 import { PhotoGrid } from '../components/PhotoGrid'
 import { MapView } from '../components/MapView'
 import { CitySearch } from '../components/CitySearch'
+import { TripNotes } from '../components/TripNotes'
 import { getCityData } from '../lib/fetcher'
-import { CityInfo, Event, PointOfInterest, Photo } from '../lib/types'
+import { db, auth } from '../lib/supabase'
+import { CityInfo, Event, PointOfInterest, Photo, type Trip } from '../lib/types'
 import { 
   CalendarIcon, 
   MapPinIcon, 
   CloudIcon, 
   PhotoIcon,
   ShareIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  BookmarkIcon,
+  BookmarkSlashIcon
 } from '@heroicons/react/24/outline'
 
 export function Trip() {
@@ -27,8 +31,17 @@ export function Trip() {
   const [favoritedPhotos, setFavoritedPhotos] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'pois' | 'weather' | 'photos' | 'map'>('overview')
   const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [savedTrip, setSavedTrip] = useState<Trip | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const decodedCity = city ? decodeURIComponent(city) : ''
+
+  useEffect(() => {
+    auth.getSession().then((session) => {
+      setUser(session?.user || null)
+    })
+  }, [])
 
   const { 
     data: cityData, 
@@ -42,6 +55,38 @@ export function Trip() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 
+  // Check if trip is already saved and load favorites
+  useEffect(() => {
+    const checkSavedTrip = async () => {
+      if (!user || !cityData) return
+      
+      const trips = await db.getTrips()
+      const existingTrip = trips.find(
+        (t: Trip) => t.city === cityData.city.name && t.country === cityData.city.country
+      )
+      
+      if (existingTrip) {
+        setSavedTrip(existingTrip)
+        
+        // Load favorites
+        const favorites = await db.getFavorites(existingTrip.id)
+        favorites.forEach((fav: any) => {
+          if (fav.type === 'event') {
+            setFavoritedEvents(prev => new Set(prev).add(fav.itemId))
+          } else if (fav.type === 'poi') {
+            setFavoritedPois(prev => new Set(prev).add(fav.itemId))
+          } else if (fav.type === 'photo') {
+            setFavoritedPhotos(prev => new Set(prev).add(fav.itemId))
+          }
+        })
+      } else {
+        setSavedTrip(null)
+      }
+    }
+
+    checkSavedTrip()
+  }, [user, cityData])
+
   const handleCitySelect = async (newCity: CityInfo) => {
     setLoading(true)
     try {
@@ -53,53 +98,231 @@ export function Trip() {
     }
   }
 
-  const handleFavoriteEvent = (event: Event) => {
-    setFavoritedEvents(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(event.id)) {
-        newSet.delete(event.id)
-      } else {
-        newSet.add(event.id)
-      }
-      return newSet
-    })
-  }
-
-  const handleFavoritePoi = (poi: PointOfInterest) => {
-    setFavoritedPois(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(poi.xid)) {
-        newSet.delete(poi.xid)
-      } else {
-        newSet.add(poi.xid)
-      }
-      return newSet
-    })
-  }
-
-  const handleFavoritePhoto = (photo: Photo) => {
-    setFavoritedPhotos(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(photo.id)) {
-        newSet.delete(photo.id)
-      } else {
-        newSet.add(photo.id)
-      }
-      return newSet
-    })
-  }
-
-  const handleShare = () => {
-    if (navigator.share && cityData) {
-      navigator.share({
-        title: `Travel Genie - ${cityData.city.name}`,
-        text: `Check out this amazing destination: ${cityData.city.name}, ${cityData.city.country}`,
-        url: window.location.href,
+  const handleFavoriteEvent = async (event: Event) => {
+    if (!user || !savedTrip) {
+      // Just update local state if not logged in or trip not saved
+      setFavoritedEvents(prev => {
+        const newSet = new Set(prev)
+        if (newSet.has(event.id)) {
+          newSet.delete(event.id)
+        } else {
+          newSet.add(event.id)
+        }
+        return newSet
       })
+      return
+    }
+
+    // Save to database
+    const isFavorited = favoritedEvents.has(event.id)
+    try {
+      if (isFavorited) {
+        // Remove favorite - would need to find the favorite ID first
+        // For now, just update local state
+        setFavoritedEvents(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(event.id)
+          return newSet
+        })
+      } else {
+        // Add favorite
+        await db.saveFavorite({
+          tripId: savedTrip.id,
+          type: 'event',
+          itemId: event.id,
+          itemData: event,
+          userId: user.id,
+        })
+        setFavoritedEvents(prev => new Set(prev).add(event.id))
+      }
+    } catch (error) {
+      console.error('Error saving favorite:', error)
+    }
+  }
+
+  const handleFavoritePoi = async (poi: PointOfInterest) => {
+    if (!user || !savedTrip) {
+      setFavoritedPois(prev => {
+        const newSet = new Set(prev)
+        if (newSet.has(poi.xid)) {
+          newSet.delete(poi.xid)
+        } else {
+          newSet.add(poi.xid)
+        }
+        return newSet
+      })
+      return
+    }
+
+    const isFavorited = favoritedPois.has(poi.xid)
+    try {
+      if (isFavorited) {
+        setFavoritedPois(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(poi.xid)
+          return newSet
+        })
+      } else {
+        await db.saveFavorite({
+          tripId: savedTrip.id,
+          type: 'poi',
+          itemId: poi.xid,
+          itemData: poi,
+          userId: user.id,
+        })
+        setFavoritedPois(prev => new Set(prev).add(poi.xid))
+      }
+    } catch (error) {
+      console.error('Error saving favorite:', error)
+    }
+  }
+
+  const handleFavoritePhoto = async (photo: Photo) => {
+    if (!user || !savedTrip) {
+      setFavoritedPhotos(prev => {
+        const newSet = new Set(prev)
+        if (newSet.has(photo.id)) {
+          newSet.delete(photo.id)
+        } else {
+          newSet.add(photo.id)
+        }
+        return newSet
+      })
+      return
+    }
+
+    const isFavorited = favoritedPhotos.has(photo.id)
+    try {
+      if (isFavorited) {
+        setFavoritedPhotos(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(photo.id)
+          return newSet
+        })
+      } else {
+        await db.saveFavorite({
+          tripId: savedTrip.id,
+          type: 'photo',
+          itemId: photo.id,
+          itemData: photo,
+          userId: user.id,
+        })
+        setFavoritedPhotos(prev => new Set(prev).add(photo.id))
+      }
+    } catch (error) {
+      console.error('Error saving favorite:', error)
+    }
+  }
+
+  const handleSaveNotes = async (notes: string) => {
+    if (!savedTrip) return
+    await db.updateTrip(savedTrip.id, { notes })
+    setSavedTrip({ ...savedTrip, notes })
+  }
+
+  const handleSaveTrip = async () => {
+    if (!user) {
+      alert('Please sign in to save trips')
+      return
+    }
+
+    if (!cityData) return
+
+    setSaving(true)
+    try {
+      if (savedTrip) {
+        // Delete saved trip
+        await db.deleteTrip(savedTrip.id)
+        setSavedTrip(null)
+        alert('Trip removed from saved trips')
+      } else {
+        // Save new trip
+        const trip = await db.saveTrip({
+          city: cityData.city.name,
+          country: cityData.city.country,
+          lat: cityData.city.lat,
+          lon: cityData.city.lon,
+        })
+        setSavedTrip(trip)
+        alert('Trip saved successfully!')
+      }
+    } catch (error: any) {
+      console.error('Error saving trip:', error)
+      alert(error.message || 'Failed to save trip')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleShare = async () => {
+    if (!cityData) return
+
+    if (!user) {
+      // Share current page URL
+      if (navigator.share) {
+        navigator.share({
+          title: `Travel Genie - ${cityData.city.name}`,
+          text: `Check out this amazing destination: ${cityData.city.name}, ${cityData.city.country}`,
+          url: window.location.href,
+        })
+      } else {
+        navigator.clipboard.writeText(window.location.href)
+        alert('Link copied to clipboard!')
+      }
+      return
+    }
+
+    // If user is logged in and trip is saved, generate share token
+    if (savedTrip) {
+      try {
+        const shareToken = await db.generateShareToken(savedTrip.id)
+        if (shareToken) {
+          const shareUrl = `${window.location.origin}/shared/${shareToken}`
+          if (navigator.share) {
+            navigator.share({
+              title: `Travel Genie - ${cityData.city.name}`,
+              text: `Check out my trip to ${cityData.city.name}, ${cityData.city.country}`,
+              url: shareUrl,
+            })
+          } else {
+            navigator.clipboard.writeText(shareUrl)
+            alert('Share link copied to clipboard!')
+          }
+        }
+      } catch (error: any) {
+        console.error('Error sharing trip:', error)
+        alert('Failed to generate share link')
+      }
     } else {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(window.location.href)
-      // You could show a toast notification here
+      // Save trip first, then share
+      try {
+        const newTrip = await db.saveTrip({
+          city: cityData.city.name,
+          country: cityData.city.country,
+          lat: cityData.city.lat,
+          lon: cityData.city.lon,
+        })
+        if (newTrip) {
+          setSavedTrip(newTrip)
+          const shareToken = await db.generateShareToken(newTrip.id)
+          if (shareToken) {
+            const shareUrl = `${window.location.origin}/shared/${shareToken}`
+            if (navigator.share) {
+              navigator.share({
+                title: `Travel Genie - ${cityData.city.name}`,
+                text: `Check out my trip to ${cityData.city.name}, ${cityData.city.country}`,
+                url: shareUrl,
+              })
+            } else {
+              navigator.clipboard.writeText(shareUrl)
+              alert('Trip saved and share link copied to clipboard!')
+            }
+          }
+        }
+      } catch (error: any) {
+        console.error('Error saving and sharing trip:', error)
+        alert('Failed to save and share trip')
+      }
     }
   }
 
@@ -200,6 +423,26 @@ export function Trip() {
                 <ArrowPathIcon className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
+              {user && (
+                <button
+                  onClick={handleSaveTrip}
+                  disabled={saving}
+                  className={`btn ${savedTrip ? 'btn-primary' : 'btn-outline'} flex items-center`}
+                  title={savedTrip ? 'Remove from saved trips' : 'Save trip'}
+                >
+                  {savedTrip ? (
+                    <>
+                      <BookmarkSlashIcon className="h-4 w-4 mr-2" />
+                      Saved
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkIcon className="h-4 w-4 mr-2" />
+                      Save
+                    </>
+                  )}
+                </button>
+              )}
               <button
                 onClick={handleShare}
                 className="btn btn-outline flex items-center"
@@ -298,6 +541,17 @@ export function Trip() {
               <div className="lg:col-span-2">
                 <WeatherChart weather={weather} />
               </div>
+
+              {/* Trip Notes - Only show if trip is saved */}
+              {savedTrip && (
+                <div className="lg:col-span-2">
+                  <TripNotes
+                    tripId={savedTrip.id}
+                    initialNotes={savedTrip.notes || ''}
+                    onSave={handleSaveNotes}
+                  />
+                </div>
+              )}
             </div>
           )}
 
