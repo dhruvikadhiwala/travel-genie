@@ -4,19 +4,37 @@ import { Trip, Favorite, SearchHistory } from './types'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Only create Supabase client if both URL and key are provided
-export const supabase = (supabaseUrl && supabaseAnonKey && supabaseUrl !== '' && supabaseAnonKey !== '')
-  ? createClient(supabaseUrl, supabaseAnonKey, {
+// Debug: Check if env vars are available (only log in production to help debug)
+if (import.meta.env.PROD) {
+  console.log('Supabase URL configured:', !!supabaseUrl, supabaseUrl ? 'Yes' : 'No')
+  console.log('Supabase Key configured:', !!supabaseAnonKey, supabaseAnonKey ? 'Yes' : 'No')
+}
+
+// Only create Supabase client if both URL and key are provided and non-empty
+let supabaseInstance = null
+try {
+  if (supabaseUrl && supabaseAnonKey && supabaseUrl.trim() !== '' && supabaseAnonKey.trim() !== '') {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
       }
     })
-  : null
+  }
+} catch (error) {
+  console.error('Failed to initialize Supabase client:', error)
+  supabaseInstance = null
+}
 
-// Log warning if Supabase is not configured (only in development)
-if (!supabase && import.meta.env.DEV) {
-  console.warn('Supabase is not configured. Authentication and database features will not work.')
+export const supabase = supabaseInstance
+
+// Log warning if Supabase is not configured
+if (!supabase) {
+  if (import.meta.env.DEV) {
+    console.warn('Supabase is not configured. Authentication and database features will not work.')
+  } else {
+    console.warn('Supabase is not configured. Please check environment variables.')
+  }
 }
 
 // Database helper functions
