@@ -47,10 +47,14 @@ A personalized trip explorer that blends events, points of interest, photos, and
    VITE_UNSPLASH_API_KEY=your_unsplash_api_key_here
    ```
 
-4. **Start the development server**
-   ```bash
-   npm run dev
+4. **Set up Supabase (optional, for authentication features)**
+   Add your Supabase credentials to `.env`:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
+   
+   Note: You'll need to create the database tables in your Supabase project for authentication and trip saving features to work.
 
 5. **Start the development server**
    ```bash
@@ -93,6 +97,7 @@ This project is configured for **local development**. Simply run `npm run dev` a
 - **Charts**: Recharts
 - **Icons**: Heroicons
 - **Routing**: React Router DOM
+- **Database & Auth**: Supabase (PostgreSQL + Authentication)
 
 ## 📁 Project Structure
 
@@ -105,13 +110,18 @@ src/
 │   ├── WeatherChart.tsx # Weather forecast chart
 │   ├── PhotoGrid.tsx    # Photo gallery
 │   ├── MapView.tsx      # Interactive map
-│   └── Header.tsx       # Navigation header
+│   ├── Header.tsx       # Navigation header
+│   ├── AuthModal.tsx    # Authentication modal
+│   └── TripNotes.tsx    # Trip notes editor
 ├── pages/               # Page components
 │   ├── Home.tsx         # Landing page
-│   └── Trip.tsx         # Trip details page
+│   ├── Trip.tsx         # Trip details page
+│   ├── MyTrips.tsx      # Saved trips page
+│   └── SharedTrip.tsx   # Public shared trip viewer
 ├── lib/                 # Utility functions
 │   ├── types.ts         # TypeScript type definitions
-│   └── fetcher.ts       # API integration functions
+│   ├── fetcher.ts       # API integration functions
+│   └── supabase.ts      # Supabase client and database helpers
 ├── App.tsx              # Main app component
 ├── main.tsx             # App entry point
 └── styles.css           # Global styles
@@ -125,13 +135,19 @@ src/
 - **Fast**: Optimized loading with React Query caching
 - **Interactive**: Smooth animations and hover effects
 
+## ✅ Implemented Features
+
+- ✅ User authentication with Supabase (sign up, sign in, magic link)
+- ✅ Save and share trip boards
+- ✅ Trip notes for saved trips
+- ✅ Favorites for events, POIs, and photos
+- ✅ My Trips page to manage saved trips
+- ✅ Public trip sharing via share tokens
+
 ## 🔮 Future Enhancements
 
-- [ ] User authentication with Supabase
-- [ ] Save and share trip boards
 - [ ] Trip recommendations based on preferences
 - [ ] Offline support with service workers
-- [ ] Social features and trip sharing
 - [ ] Advanced filtering and search
 - [ ] Integration with booking services
 - [ ] Mobile app with React Native
