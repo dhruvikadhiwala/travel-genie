@@ -10,4 +10,13 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
+  },
+  optimizeDeps: {
+    include: ['@supabase/supabase-js'],
+  },
 })

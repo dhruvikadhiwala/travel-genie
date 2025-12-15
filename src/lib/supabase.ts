@@ -38,13 +38,26 @@ function createSupabaseClient() {
       return null
     }
 
-    // Try to create client - if it fails, return null so app can still load
-    return createClient(cleanUrl, cleanKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      }
-    })
+    // Ensure fetch is available (should be in browsers, but check anyway)
+    if (typeof fetch === 'undefined') {
+      console.error('Fetch API is not available')
+      return null
+    }
+
+    // Try minimal options first - if this works, we can add more options later
+    // The error suggests something in the options might be causing issues
+    try {
+      return createClient(cleanUrl, cleanKey)
+    } catch (minimalError) {
+      console.error('Minimal client creation failed, trying with auth options:', minimalError)
+      // If minimal fails, try with auth options
+      return createClient(cleanUrl, cleanKey, {
+        auth: {
+          persistSession: typeof window !== 'undefined',
+          autoRefreshToken: true,
+        }
+      })
+    }
   } catch (error: any) {
     // Log error but don't throw - allow app to continue without Supabase
     console.error('Failed to initialize Supabase client:', error)
