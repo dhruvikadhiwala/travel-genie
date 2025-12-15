@@ -8,33 +8,41 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 if (import.meta.env.PROD) {
   console.log('Supabase URL configured:', !!supabaseUrl, supabaseUrl ? 'Yes' : 'No')
   console.log('Supabase Key configured:', !!supabaseAnonKey, supabaseAnonKey ? 'Yes' : 'No')
+  if (supabaseUrl) {
+    console.log('Supabase URL starts with:', supabaseUrl.substring(0, 20))
+  }
+  if (supabaseAnonKey) {
+    console.log('Supabase Key length:', supabaseAnonKey.length)
+  }
 }
 
 // Only create Supabase client if both URL and key are provided and non-empty
 let supabaseInstance = null
-try {
-  if (supabaseUrl && supabaseAnonKey && supabaseUrl.trim() !== '' && supabaseAnonKey.trim() !== '') {
-    // Clean the values (remove any extra whitespace)
+
+// Only initialize if we have both values and we're in a browser environment
+if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey && supabaseUrl.trim() !== '' && supabaseAnonKey.trim() !== '') {
+  try {
     const cleanUrl = supabaseUrl.trim()
     const cleanKey = supabaseAnonKey.trim()
     
     // Validate URL format
-    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-      console.error('Invalid Supabase URL format:', cleanUrl)
-      supabaseInstance = null
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      // Create client with explicit fetch option to avoid bundling issues
+      supabaseInstance = createClient(cleanUrl, cleanKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        }
+      })
     } else {
-      // Try creating client with minimal options first
-      supabaseInstance = createClient(cleanUrl, cleanKey)
+      console.error('Invalid Supabase URL format - must start with http:// or https://')
     }
+  } catch (error: any) {
+    console.error('Failed to initialize Supabase client:', error)
+    if (error?.message) console.error('Error message:', error.message)
+    if (error?.stack) console.error('Error stack:', error.stack)
+    supabaseInstance = null
   }
-} catch (error: any) {
-  console.error('Failed to initialize Supabase client:', error)
-  console.error('Error details:', {
-    message: error?.message,
-    name: error?.name,
-    stack: error?.stack
-  })
-  supabaseInstance = null
 }
 
 export const supabase = supabaseInstance
