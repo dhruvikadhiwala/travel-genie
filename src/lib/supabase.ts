@@ -4,70 +4,24 @@ import { Trip, Favorite, SearchHistory } from './types'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Debug: Check if env vars are available (only log in production to help debug)
-if (import.meta.env.PROD) {
-  console.log('Supabase URL configured:', !!supabaseUrl, supabaseUrl ? 'Yes' : 'No')
-  console.log('Supabase Key configured:', !!supabaseAnonKey, supabaseAnonKey ? 'Yes' : 'No')
-  if (supabaseUrl) {
-    console.log('Supabase URL starts with:', supabaseUrl.substring(0, 20))
-  }
-  if (supabaseAnonKey) {
-    console.log('Supabase Key length:', supabaseAnonKey.length)
-  }
-}
+// Initialize Supabase client
+let supabaseInstance: ReturnType<typeof createClient> | null = null
 
-// Only create Supabase client if both URL and key are provided and non-empty
-// Use a factory function to safely initialize
-function createSupabaseClient() {
-  try {
-    // Only initialize if we have both values and we're in a browser environment
-    if (typeof window === 'undefined') {
-      return null
-    }
-
-    if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
-      return null
-    }
-
+try {
+  if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
     const cleanUrl = supabaseUrl.trim()
     const cleanKey = supabaseAnonKey.trim()
     
-    // Validate URL format
-    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-      console.error('Invalid Supabase URL format - must start with http:// or https://')
-      return null
+    if (cleanUrl && cleanKey && cleanUrl.startsWith('http')) {
+      supabaseInstance = createClient(cleanUrl, cleanKey)
     }
-
-    // Ensure fetch is available (should be in browsers, but check anyway)
-    if (typeof fetch === 'undefined') {
-      console.error('Fetch API is not available')
-      return null
-    }
-
-    // Try minimal options first - if this works, we can add more options later
-    // The error suggests something in the options might be causing issues
-    try {
-      return createClient(cleanUrl, cleanKey)
-    } catch (minimalError) {
-      console.error('Minimal client creation failed, trying with auth options:', minimalError)
-      // If minimal fails, try with auth options
-      return createClient(cleanUrl, cleanKey, {
-        auth: {
-          persistSession: typeof window !== 'undefined',
-          autoRefreshToken: true,
-        }
-      })
-    }
-  } catch (error: any) {
-    // Log error but don't throw - allow app to continue without Supabase
-    console.error('Failed to initialize Supabase client:', error)
-    if (error?.message) console.error('Error message:', error.message)
-    return null
   }
+} catch (error: any) {
+  console.error('Supabase initialization error:', error?.message || error)
+  supabaseInstance = null
 }
 
-// Initialize and export
-export const supabase = createSupabaseClient()
+export const supabase = supabaseInstance
 
 // Log warning if Supabase is not configured
 if (!supabase) {
@@ -78,35 +32,40 @@ if (!supabase) {
   }
 }
 
+// Helper to ensure supabase is not null (for TypeScript)
+function requireSupabase() {
+  if (!supabase) {
+    throw new Error('Supabase is not configured')
+  }
+  return supabase
+}
+
 // Database helper functions
 export const db = {
   // Get current user
   async getCurrentUser() {
     if (!supabase) return null
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await (supabase as any).auth.getUser()
     return user
   },
 
   // Save a trip
   async saveTrip(trip: Omit<Trip, 'id' | 'createdAt' | 'updatedAt'>) {
-    if (!supabase) {
-      console.warn('Supabase not configured')
-      return null
-    }
+    const client = requireSupabase()
 
     const user = await this.getCurrentUser()
     if (!user) {
       throw new Error('User must be authenticated to save trips')
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('trips')
       .insert({
         ...trip,
         user_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .select()
       .single()
 
@@ -118,18 +77,19 @@ export const db = {
     if (!data) return null
 
     // Normalize field names from snake_case to camelCase
+    const tripData = data as any
     return {
-      id: data.id,
-      city: data.city,
-      country: data.country,
-      lat: data.lat,
-      lon: data.lon,
-      notes: data.notes,
-      createdAt: data.created_at || data.createdAt,
-      updatedAt: data.updated_at || data.updatedAt,
-      userId: data.user_id || data.userId,
-      isPublic: data.is_public || data.isPublic,
-      shareToken: data.share_token || data.shareToken,
+      id: tripData.id,
+      city: tripData.city,
+      country: tripData.country,
+      lat: tripData.lat,
+      lon: tripData.lon,
+      notes: tripData.notes,
+      createdAt: tripData.created_at || tripData.createdAt,
+      updatedAt: tripData.updated_at || tripData.updatedAt,
+      userId: tripData.user_id || tripData.userId,
+      isPublic: tripData.is_public || tripData.isPublic,
+      shareToken: tripData.share_token || tripData.shareToken,
     }
   },
 
@@ -140,7 +100,7 @@ export const db = {
     const user = await this.getCurrentUser()
     if (!user) return []
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('trips')
       .select('*')
       .eq('user_id', user.id)
@@ -171,7 +131,7 @@ export const db = {
   async getTrip(id: string) {
     if (!supabase) return null
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('trips')
       .select('*')
       .eq('id', id)
@@ -204,7 +164,7 @@ export const db = {
   async getPublicTrip(shareToken: string) {
     if (!supabase) return null
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('trips')
       .select('*')
       .eq('share_token', shareToken)
@@ -243,7 +203,7 @@ export const db = {
       throw new Error('User must be authenticated to update trips')
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('trips')
       .update({
         ...updates,
@@ -286,7 +246,7 @@ export const db = {
       throw new Error('User must be authenticated to delete trips')
     }
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('trips')
       .delete()
       .eq('id', id)
@@ -309,7 +269,7 @@ export const db = {
       throw new Error('User must be authenticated to save favorites')
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('favorites')
       .insert({
         ...favorite,
@@ -334,7 +294,7 @@ export const db = {
     const user = await this.getCurrentUser()
     if (!user) return []
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('favorites')
       .select('*')
       .eq('trip_id', tripId)
@@ -355,7 +315,7 @@ export const db = {
     const user = await this.getCurrentUser()
     if (!user) return false
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('favorites')
       .delete()
       .eq('id', id)
@@ -375,7 +335,7 @@ export const db = {
 
     const user = await this.getCurrentUser()
     
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('search_history')
       .insert({
         ...search,
@@ -400,7 +360,7 @@ export const db = {
     const user = await this.getCurrentUser()
     if (!user) return []
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('search_history')
       .select('*')
       .eq('user_id', user.id)
@@ -417,9 +377,7 @@ export const db = {
 
   // Generate share token for a trip
   async generateShareToken(tripId: string) {
-    if (!supabase) {
-      throw new Error('Supabase not configured')
-    }
+    const client = requireSupabase()
 
     const user = await this.getCurrentUser()
     if (!user) {
@@ -427,7 +385,7 @@ export const db = {
     }
 
     // Check if trip exists and belongs to user, and get current share_token
-    const { data: existingTrip, error: fetchError } = await supabase
+    const { data: existingTrip, error: fetchError } = await client
       .from('trips')
       .select('id, share_token, is_public')
       .eq('id', tripId)
@@ -444,10 +402,11 @@ export const db = {
     }
 
     // Use existing token if available, otherwise generate new one
-    let shareToken = existingTrip.share_token
+    const tripData = existingTrip as any
+    let shareToken = tripData.share_token
     
     // If already public with a token, return it
-    if (existingTrip.is_public && shareToken) {
+    if (tripData.is_public && shareToken) {
       return shareToken
     }
 
@@ -459,7 +418,7 @@ export const db = {
     }
 
     // Update the trip to make it public with the share token
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (client as any)
       .from('trips')
       .update({
         share_token: shareToken,
@@ -489,7 +448,7 @@ export const auth = {
       throw new Error('Supabase not configured')
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await (supabase as any).auth.signUp({
       email,
       password,
     })
@@ -504,7 +463,7 @@ export const auth = {
       throw new Error('Supabase not configured')
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await (supabase as any).auth.signInWithPassword({
       email,
       password,
     })
@@ -519,7 +478,7 @@ export const auth = {
       throw new Error('Supabase not configured')
     }
 
-    const { data, error } = await supabase.auth.signInWithOtp({
+    const { data, error } = await (supabase as any).auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: window.location.origin,
@@ -534,7 +493,7 @@ export const auth = {
   async signOut() {
     if (!supabase) return
 
-    const { error } = await supabase.auth.signOut()
+    const { error } = await (supabase as any).auth.signOut()
     if (error) throw error
   },
 
@@ -542,7 +501,7 @@ export const auth = {
   async getSession() {
     if (!supabase) return null
 
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { session } } = await (supabase as any).auth.getSession()
     return session
   },
 

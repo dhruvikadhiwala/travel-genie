@@ -54,3 +54,4 @@ coverage/
 
 # Supabase
 .supabase
+.env*.local
