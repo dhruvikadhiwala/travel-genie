@@ -166,8 +166,6 @@ export function MyTrips() {
                     Saved {
                       trip.createdAt 
                         ? new Date(trip.createdAt).toLocaleDateString()
-                        : trip.created_at
-                        ? new Date(trip.created_at).toLocaleDateString()
                         : 'Recently'
                     }
                   </span>

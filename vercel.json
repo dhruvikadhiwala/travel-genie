@@ -1,24 +1,9 @@
 {
   "version": 2,
-  "name": "travel-genie",
-  "builds": [
+  "rewrites": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
-  "env": {
-    "VITE_TICKETMASTER_API_KEY": "@ticketmaster_api_key",
-    "VITE_OPENTRIPMAP_API_KEY": "@opentripmap_api_key",
-    "VITE_UNSPLASH_API_KEY": "@unsplash_api_key"
-  }
+  ]
 }
