@@ -17,35 +17,44 @@ if (import.meta.env.PROD) {
 }
 
 // Only create Supabase client if both URL and key are provided and non-empty
-let supabaseInstance = null
-
-// Only initialize if we have both values and we're in a browser environment
-if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey && supabaseUrl.trim() !== '' && supabaseAnonKey.trim() !== '') {
+// Use a factory function to safely initialize
+function createSupabaseClient() {
   try {
+    // Only initialize if we have both values and we're in a browser environment
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
+      return null
+    }
+
     const cleanUrl = supabaseUrl.trim()
     const cleanKey = supabaseAnonKey.trim()
     
     // Validate URL format
-    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
-      // Create client with explicit fetch option to avoid bundling issues
-      supabaseInstance = createClient(cleanUrl, cleanKey, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-        }
-      })
-    } else {
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       console.error('Invalid Supabase URL format - must start with http:// or https://')
+      return null
     }
+
+    // Try to create client - if it fails, return null so app can still load
+    return createClient(cleanUrl, cleanKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    })
   } catch (error: any) {
+    // Log error but don't throw - allow app to continue without Supabase
     console.error('Failed to initialize Supabase client:', error)
     if (error?.message) console.error('Error message:', error.message)
-    if (error?.stack) console.error('Error stack:', error.stack)
-    supabaseInstance = null
+    return null
   }
 }
 
-export const supabase = supabaseInstance
+// Initialize and export
+export const supabase = createSupabaseClient()
 
 // Log warning if Supabase is not configured
 if (!supabase) {
