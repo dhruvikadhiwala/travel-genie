@@ -1,12 +1,23 @@
 import { createClient } from '@supabase/supabase-js'
 import { Trip, Favorite, SearchHistory } from './types'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
+// Only create Supabase client if both URL and key are provided
+export const supabase = (supabaseUrl && supabaseAnonKey && supabaseUrl !== '' && supabaseAnonKey !== '')
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    })
   : null
+
+// Log warning if Supabase is not configured (only in development)
+if (!supabase && import.meta.env.DEV) {
+  console.warn('Supabase is not configured. Authentication and database features will not work.')
+}
 
 // Database helper functions
 export const db = {
