@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { XMarkIcon, EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline'
-import { auth } from '../lib/supabase'
+import { auth, supabase } from '../lib/supabase'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -23,6 +23,13 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     e.preventDefault()
     setError(null)
     setMessage(null)
+    
+    // Check if Supabase is configured
+    if (!supabase) {
+      setError('Authentication is not available. Please check your Supabase configuration.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -80,6 +87,15 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
+
+        {!supabase && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> Authentication features require Supabase configuration. 
+              Core app features (city search, trip viewing) are still available.
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -155,7 +171,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !supabase}
             className="w-full btn btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
