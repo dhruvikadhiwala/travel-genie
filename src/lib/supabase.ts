@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { Trip, Favorite, SearchHistory } from './types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -17,7 +17,7 @@ console.log('[Supabase Init]', {
 })
 
 // Initialize Supabase client
-let supabaseInstance: ReturnType<typeof createClient> | null = null
+let supabaseInstance: SupabaseClient | null = null
 
 if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
   const cleanUrl = supabaseUrl.trim()
@@ -35,20 +35,26 @@ if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
         Response: typeof Response
       })
       
-      // Ensure fetch is available and bound correctly
-      const fetchImpl = typeof fetch !== 'undefined' ? fetch : undefined
-      if (!fetchImpl) {
-        throw new Error('Fetch API is not available')
+      // Ensure all required Web APIs are available
+      if (typeof fetch === 'undefined' || typeof Headers === 'undefined' || 
+          typeof Request === 'undefined' || typeof Response === 'undefined') {
+        throw new Error('Required Web APIs are not available')
       }
 
-      // Create client with explicit fetch to avoid bundling issues
+      // Verify that Headers can be instantiated
+      try {
+        new Headers()
+        console.log('[Supabase] Headers constructor test passed')
+      } catch (e) {
+        console.error('[Supabase] Headers constructor test failed:', e)
+        throw new Error('Headers constructor is not available')
+      }
+
+      // Create client with minimal config
       supabaseInstance = createClient(cleanUrl, cleanKey, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-        },
-        global: {
-          fetch: fetchImpl,
         },
       })
       
@@ -58,16 +64,7 @@ if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
       console.error('[Supabase] Error message:', error?.message)
       console.error('[Supabase] Error name:', error?.name)
       console.error('[Supabase] Error stack:', error?.stack?.substring(0, 500))
-      
-      // Try one more time with absolutely minimal config
-      try {
-        console.log('[Supabase] Retrying with minimal config...')
-        supabaseInstance = createClient(cleanUrl, cleanKey)
-        console.log('[Supabase] ✓ Client created with minimal config')
-      } catch (retryError: any) {
-        console.error('[Supabase] ✗ Retry also failed:', retryError?.message)
-        supabaseInstance = null
-      }
+      supabaseInstance = null
     }
   } else {
     console.warn('[Supabase] Invalid URL or key format')
@@ -80,7 +77,7 @@ if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
   })
 }
 
-export const supabase = supabaseInstance
+export const supabase: SupabaseClient | null = supabaseInstance
 
 // Log warning if Supabase is not configured
 if (!supabase) {
