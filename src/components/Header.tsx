@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPinIcon, SparklesIcon, UserCircleIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { SparklesIcon, UserCircleIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { AuthModal } from './AuthModal'
 import { auth } from '../lib/supabase'
 
@@ -77,10 +77,12 @@ export function Header({ title = "Travel Genie", showBackButton = false }: Heade
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="hidden sm:flex items-center text-sm text-gray-500">
-                <MapPinIcon className="w-4 h-4 mr-1" />
-                Discover amazing destinations
-              </div>
+              <Link
+                to="/about"
+                className="hidden sm:block text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                About
+              </Link>
               
               {user ? (
                 <div className="relative">
