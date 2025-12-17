@@ -19,62 +19,90 @@ console.log('[Supabase Init]', {
 // Initialize Supabase client
 let supabaseInstance: SupabaseClient | null = null
 
-if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
+function initializeClient() {
+  if (typeof window === 'undefined' || !supabaseUrl || !supabaseAnonKey) {
+    console.warn('[Supabase] Missing required configuration:', {
+      inBrowser: typeof window !== 'undefined',
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseAnonKey
+    })
+    return
+  }
+
   const cleanUrl = supabaseUrl.trim()
   const cleanKey = supabaseAnonKey.trim()
   
-  if (cleanUrl && cleanKey && (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://'))) {
-    try {
-      console.log('[Supabase] Attempting to create client...')
-      console.log('[Supabase] Environment check:', {
-        fetch: typeof fetch,
-        globalThis: typeof globalThis,
-        window: typeof window,
-        Headers: typeof Headers,
-        Request: typeof Request,
-        Response: typeof Response
-      })
-      
-      // Ensure all required Web APIs are available
-      if (typeof fetch === 'undefined' || typeof Headers === 'undefined' || 
-          typeof Request === 'undefined' || typeof Response === 'undefined') {
-        throw new Error('Required Web APIs are not available')
-      }
-
-      // Verify that Headers can be instantiated
-      try {
-        new Headers()
-        console.log('[Supabase] Headers constructor test passed')
-      } catch (e) {
-        console.error('[Supabase] Headers constructor test failed:', e)
-        throw new Error('Headers constructor is not available')
-      }
-
-      // Create client with minimal config
-      supabaseInstance = createClient(cleanUrl, cleanKey, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-        },
-      })
-      
-      console.log('[Supabase] ✓ Client created successfully')
-    } catch (error: any) {
-      console.error('[Supabase] ✗ Client creation failed:', error)
-      console.error('[Supabase] Error message:', error?.message)
-      console.error('[Supabase] Error name:', error?.name)
-      console.error('[Supabase] Error stack:', error?.stack?.substring(0, 500))
-      supabaseInstance = null
-    }
-  } else {
+  if (!cleanUrl || !cleanKey || (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://'))) {
     console.warn('[Supabase] Invalid URL or key format')
+    return
   }
-} else {
-  console.warn('[Supabase] Missing required configuration:', {
-    inBrowser: typeof window !== 'undefined',
-    hasUrl: !!supabaseUrl,
-    hasKey: !!supabaseAnonKey
-  })
+
+  try {
+    console.log('[Supabase] Attempting to create client...')
+    console.log('[Supabase] Environment check:', {
+      fetch: typeof fetch,
+      globalThis: typeof globalThis,
+      window: typeof window,
+      Headers: typeof Headers,
+      Request: typeof Request,
+      Response: typeof Response
+    })
+    
+    // Ensure all required Web APIs are available
+    if (typeof fetch === 'undefined' || typeof Headers === 'undefined' || 
+        typeof Request === 'undefined' || typeof Response === 'undefined') {
+      throw new Error('Required Web APIs are not available')
+    }
+
+    // Verify that Headers can be instantiated
+    try {
+      new Headers()
+      console.log('[Supabase] Headers constructor test passed')
+    } catch (e) {
+      console.error('[Supabase] Headers constructor test failed:', e)
+      throw new Error('Headers constructor is not available')
+    }
+
+    // Try absolute simplest config first (just URL and key)
+    try {
+      console.log('[Supabase] Attempting minimal config (URL + key only)...')
+      supabaseInstance = createClient(cleanUrl, cleanKey)
+      console.log('[Supabase] ✓ Client created with minimal config')
+    } catch (minimalError: any) {
+      console.error('[Supabase] Minimal config failed:', minimalError?.message)
+      
+      // Try with explicit fetch binding
+      try {
+        console.log('[Supabase] Attempting with explicit fetch binding...')
+        const globalFetch = typeof window !== 'undefined' ? window.fetch : fetch
+        supabaseInstance = createClient(cleanUrl, cleanKey, {
+          global: {
+            fetch: globalFetch,
+          },
+        })
+        console.log('[Supabase] ✓ Client created with explicit fetch')
+      } catch (fetchError: any) {
+        console.error('[Supabase] Explicit fetch also failed:', fetchError?.message)
+        throw fetchError
+      }
+    }
+  } catch (error: any) {
+    console.error('[Supabase] ✗ Client creation failed:', error)
+    console.error('[Supabase] Error message:', error?.message)
+    console.error('[Supabase] Error name:', error?.name)
+    console.error('[Supabase] Error stack:', error?.stack?.substring(0, 500))
+    supabaseInstance = null
+  }
+}
+
+// Initialize when DOM is ready (helps with Vite bundling issues)
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeClient)
+  } else {
+    // DOM is already ready, initialize immediately
+    initializeClient()
+  }
 }
 
 export const supabase: SupabaseClient | null = supabaseInstance
@@ -565,7 +593,7 @@ export const auth = {
   onAuthStateChange(callback: (event: string, session: any) => void) {
     if (!supabase) return () => {}
 
-    return supabase.auth.onAuthStateChange(callback)
+    return (supabase as any).auth.onAuthStateChange(callback)
   },
 }
 

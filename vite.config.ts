@@ -20,6 +20,7 @@ export default defineConfig({
         // Don't code-split Supabase - keep it in main bundle to avoid initialization issues
         manualChunks: undefined,
       },
+      external: [],
     },
   },
   optimizeDeps: {
@@ -35,5 +36,9 @@ export default defineConfig({
       // Ensure proper resolution
       '@supabase/supabase-js': '@supabase/supabase-js',
     },
+    dedupe: ['@supabase/supabase-js'],
+  },
+  ssr: {
+    noExternal: ['@supabase/supabase-js'],
   },
 })
