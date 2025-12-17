@@ -4,56 +4,56 @@ import { Trip, Favorite, SearchHistory } from './types'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Debug logging
-if (import.meta.env.PROD) {
-  console.log('[Supabase Config]', {
-    hasUrl: !!supabaseUrl,
-    hasKey: !!supabaseAnonKey,
-    urlPrefix: supabaseUrl ? supabaseUrl.substring(0, 30) : 'missing',
-    keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0
-  })
-}
+// Debug logging - always log in production to help debug
+console.log('[Supabase Init]', {
+  env: import.meta.env.MODE,
+  hasUrl: !!supabaseUrl,
+  hasKey: !!supabaseAnonKey,
+  urlPrefix: supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'missing',
+  keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0,
+  inBrowser: typeof window !== 'undefined',
+  hasFetch: typeof fetch !== 'undefined',
+  hasGlobalThis: typeof globalThis !== 'undefined'
+})
 
 // Initialize Supabase client
 let supabaseInstance: ReturnType<typeof createClient> | null = null
-let initializationError: Error | null = null
 
-try {
-  if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
-    const cleanUrl = supabaseUrl.trim()
-    const cleanKey = supabaseAnonKey.trim()
-    
-    if (cleanUrl && cleanKey && cleanUrl.startsWith('http')) {
-      // Try to create client - wrap in try-catch to handle any initialization errors
-      try {
-        supabaseInstance = createClient(cleanUrl, cleanKey, {
-          auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-          }
-        })
-        console.log('[Supabase] Client initialized successfully')
-      } catch (clientError: any) {
-        console.error('[Supabase] Client creation failed:', clientError)
-        initializationError = clientError
-        supabaseInstance = null
-      }
-    } else {
-      console.warn('[Supabase] Invalid URL or key format')
+if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
+  const cleanUrl = supabaseUrl.trim()
+  const cleanKey = supabaseAnonKey.trim()
+  
+  if (cleanUrl && cleanKey && (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://'))) {
+    try {
+      console.log('[Supabase] Attempting to create client...')
+      
+      // Create client with minimal config first to avoid issues
+      supabaseInstance = createClient(cleanUrl, cleanKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        }
+      })
+      
+      console.log('[Supabase] ✓ Client created successfully')
+    } catch (error: any) {
+      console.error('[Supabase] ✗ Client creation failed:', error)
+      console.error('[Supabase] Error message:', error?.message)
+      console.error('[Supabase] Error stack:', error?.stack?.substring(0, 500))
+      supabaseInstance = null
     }
   } else {
-    if (import.meta.env.PROD) {
-      console.warn('[Supabase] Missing environment variables or not in browser')
-    }
+    console.warn('[Supabase] Invalid URL or key format')
   }
-} catch (error: any) {
-  console.error('[Supabase] Initialization error:', error?.message || error)
-  initializationError = error
-  supabaseInstance = null
+} else {
+  console.warn('[Supabase] Missing required configuration:', {
+    inBrowser: typeof window !== 'undefined',
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseAnonKey
+  })
 }
 
 export const supabase = supabaseInstance
-export const supabaseError = initializationError
 
 // Log warning if Supabase is not configured
 if (!supabase) {
