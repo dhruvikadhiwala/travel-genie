@@ -64,11 +64,50 @@ A personalized trip explorer that blends events, points of interest, photos, and
 6. **Open your browser**
    Navigate to `http://localhost:3000`
 
+## 🚀 Deployment to Vercel
+
+### Deploy Steps
+
+1. **Install Vercel CLI** (if not already installed)
+   ```bash
+   npm install -g vercel
+   ```
+
+2. **Login to Vercel**
+   ```bash
+   vercel login
+   ```
+
+3. **Deploy to Vercel**
+   ```bash
+   vercel --prod
+   ```
+
+4. **Set Environment Variables in Vercel Dashboard**
+   - Go to your project on [Vercel Dashboard](https://vercel.com/dashboard)
+   - Navigate to **Settings** → **Environment Variables**
+   - Add all environment variables from your `.env` file:
+     - `VITE_TICKETMASTER_API_KEY`
+     - `VITE_OPENTRIPMAP_API_KEY`
+     - `VITE_UNSPLASH_API_KEY`
+     - `VITE_SUPABASE_URL`
+     - `VITE_SUPABASE_ANON_KEY`
+   - Make sure to enable them for **Production**, **Preview**, and **Development**
+   - After adding, **redeploy** your project
+
+5. **Get Your Deployment URL**
+   - After deployment, Vercel will provide you with a production URL
+   - Example: `https://travel-genie-xyz.vercel.app`
+
+### Note on Supabase in Production
+
+Core features (city search, trip viewing, events, weather, photos, maps) work in production. Supabase authentication features may have initialization issues in production builds. For class demonstration, the core functionality is fully operational.
+
 ## 🎯 For Class Assignment
 
-This project is configured for **local development**. Simply run `npm run dev` and access the app at `http://localhost:3000`.
-
-**Note:** Supabase authentication and database features work in development mode. Make sure your `.env` file has your Supabase credentials configured.
+1. **GitHub Repository**: Make sure your repository is public on GitHub
+2. **Deploy to Vercel**: Follow the deployment steps above
+3. **Submit**: Your GitHub repo link + Vercel deployment URL
 
 ## 🔧 API Setup
 
