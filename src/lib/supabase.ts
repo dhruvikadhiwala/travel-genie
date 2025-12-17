@@ -26,21 +26,48 @@ if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
   if (cleanUrl && cleanKey && (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://'))) {
     try {
       console.log('[Supabase] Attempting to create client...')
+      console.log('[Supabase] Environment check:', {
+        fetch: typeof fetch,
+        globalThis: typeof globalThis,
+        window: typeof window,
+        Headers: typeof Headers,
+        Request: typeof Request,
+        Response: typeof Response
+      })
       
-      // Create client with minimal config first to avoid issues
+      // Ensure fetch is available and bound correctly
+      const fetchImpl = typeof fetch !== 'undefined' ? fetch : undefined
+      if (!fetchImpl) {
+        throw new Error('Fetch API is not available')
+      }
+
+      // Create client with explicit fetch to avoid bundling issues
       supabaseInstance = createClient(cleanUrl, cleanKey, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-        }
+        },
+        global: {
+          fetch: fetchImpl,
+        },
       })
       
       console.log('[Supabase] ✓ Client created successfully')
     } catch (error: any) {
       console.error('[Supabase] ✗ Client creation failed:', error)
       console.error('[Supabase] Error message:', error?.message)
+      console.error('[Supabase] Error name:', error?.name)
       console.error('[Supabase] Error stack:', error?.stack?.substring(0, 500))
-      supabaseInstance = null
+      
+      // Try one more time with absolutely minimal config
+      try {
+        console.log('[Supabase] Retrying with minimal config...')
+        supabaseInstance = createClient(cleanUrl, cleanKey)
+        console.log('[Supabase] ✓ Client created with minimal config')
+      } catch (retryError: any) {
+        console.error('[Supabase] ✗ Retry also failed:', retryError?.message)
+        supabaseInstance = null
+      }
     }
   } else {
     console.warn('[Supabase] Invalid URL or key format')

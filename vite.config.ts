@@ -17,9 +17,8 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'supabase': ['@supabase/supabase-js'],
-        },
+        // Don't code-split Supabase - keep it in main bundle to avoid initialization issues
+        manualChunks: undefined,
       },
     },
   },
