@@ -64,50 +64,9 @@ A personalized trip explorer that blends events, points of interest, photos, and
 6. **Open your browser**
    Navigate to `http://localhost:3000`
 
-## 🚀 Deployment
+## 🚀 Deployment to Vercel
 
-### Option 1: Deploy to Netlify (Recommended for Supabase)
-
-Netlify may handle Supabase bundling better than Vercel. Try this first!
-
-#### Deploy Steps:
-
-1. **Sign up for Netlify** (free) at [netlify.com](https://netlify.com)
-
-2. **Deploy via GitHub** (easiest method):
-   - Go to [Netlify Dashboard](https://app.netlify.com)
-   - Click **"Add new site"** → **"Import an existing project"**
-   - Connect your GitHub account and select your `travel-genie` repository
-   - Netlify will auto-detect Vite settings from `netlify.toml`
-
-3. **Set Environment Variables**:
-   - In Netlify Dashboard, go to **Site settings** → **Environment variables**
-   - Add all these variables:
-     - `VITE_TICKETMASTER_API_KEY`
-     - `VITE_OPENTRIPMAP_API_KEY`
-     - `VITE_UNSPLASH_API_KEY`
-     - `VITE_SUPABASE_URL`
-     - `VITE_SUPABASE_ANON_KEY`
-   - Click **"Save"**
-
-4. **Deploy**:
-   - Netlify will automatically build and deploy
-   - You'll get a URL like `https://travel-genie-xyz.netlify.app`
-
-#### Or Deploy via CLI:
-
-```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-# Login
-netlify login
-
-# Deploy
-netlify deploy --prod
-```
-
-### Option 2: Deploy to Vercel
+### Deploy Steps
 
 1. **Install Vercel CLI** (if not already installed)
    ```bash
@@ -136,15 +95,29 @@ netlify deploy --prod
    - Enable them for **Production**, **Preview**, and **Development**
    - **Redeploy** after adding variables
 
-### Note on Supabase in Production
+5. **Get Your Deployment URL**
+   - After deployment, Vercel will provide you with a production URL
+   - Example: `https://travel-genie-xyz.vercel.app`
 
-Core features (city search, trip viewing, events, weather, photos, maps) work in production. Supabase authentication may work better on Netlify due to different bundling approaches. If issues persist, core functionality remains fully operational.
+### Known Limitation: Supabase in Production
+
+**Status:** Supabase authentication features do not work in Vercel production builds due to a bundling incompatibility between `@supabase/supabase-js` and Vite's production bundler.
+
+**Impact:**
+- ❌ Authentication (sign in/sign up) does not work in production
+- ❌ Saving trips does not work in production
+- ❌ Sharing trips does not work in production
+- ✅ **All core features work perfectly:** City search, trip viewing, events, weather, photos, maps
+
+**Note:** All authentication features work correctly in development (`npm run dev`). This is a production build-specific issue. See `DEPLOYMENT_NOTES.md` for more details on attempted fixes.
+
+**For Class Assignment:** This limitation can be documented. The core application successfully demonstrates multi-API integration, state management, interactive maps, data visualization, and modern React/TypeScript patterns.
 
 ## 🎯 For Class Assignment
 
 1. **GitHub Repository**: Make sure your repository is public on GitHub
-2. **Deploy**: Try Netlify first (better Supabase support), or use Vercel
-3. **Submit**: Your GitHub repo link + deployment URL (Netlify or Vercel)
+2. **Deploy to Vercel**: Follow the deployment steps above
+3. **Submit**: Your GitHub repo link + Vercel deployment URL
 
 ## 🔧 API Setup
 
