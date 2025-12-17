@@ -64,9 +64,50 @@ A personalized trip explorer that blends events, points of interest, photos, and
 6. **Open your browser**
    Navigate to `http://localhost:3000`
 
-## 🚀 Deployment to Vercel
+## 🚀 Deployment
 
-### Deploy Steps
+### Option 1: Deploy to Netlify (Recommended for Supabase)
+
+Netlify may handle Supabase bundling better than Vercel. Try this first!
+
+#### Deploy Steps:
+
+1. **Sign up for Netlify** (free) at [netlify.com](https://netlify.com)
+
+2. **Deploy via GitHub** (easiest method):
+   - Go to [Netlify Dashboard](https://app.netlify.com)
+   - Click **"Add new site"** → **"Import an existing project"**
+   - Connect your GitHub account and select your `travel-genie` repository
+   - Netlify will auto-detect Vite settings from `netlify.toml`
+
+3. **Set Environment Variables**:
+   - In Netlify Dashboard, go to **Site settings** → **Environment variables**
+   - Add all these variables:
+     - `VITE_TICKETMASTER_API_KEY`
+     - `VITE_OPENTRIPMAP_API_KEY`
+     - `VITE_UNSPLASH_API_KEY`
+     - `VITE_SUPABASE_URL`
+     - `VITE_SUPABASE_ANON_KEY`
+   - Click **"Save"**
+
+4. **Deploy**:
+   - Netlify will automatically build and deploy
+   - You'll get a URL like `https://travel-genie-xyz.netlify.app`
+
+#### Or Deploy via CLI:
+
+```bash
+# Install Netlify CLI
+npm install -g netlify-cli
+
+# Login
+netlify login
+
+# Deploy
+netlify deploy --prod
+```
+
+### Option 2: Deploy to Vercel
 
 1. **Install Vercel CLI** (if not already installed)
    ```bash
@@ -86,28 +127,24 @@ A personalized trip explorer that blends events, points of interest, photos, and
 4. **Set Environment Variables in Vercel Dashboard**
    - Go to your project on [Vercel Dashboard](https://vercel.com/dashboard)
    - Navigate to **Settings** → **Environment Variables**
-   - Add all environment variables from your `.env` file:
+   - Add all environment variables:
      - `VITE_TICKETMASTER_API_KEY`
      - `VITE_OPENTRIPMAP_API_KEY`
      - `VITE_UNSPLASH_API_KEY`
      - `VITE_SUPABASE_URL`
      - `VITE_SUPABASE_ANON_KEY`
-   - Make sure to enable them for **Production**, **Preview**, and **Development**
-   - After adding, **redeploy** your project
-
-5. **Get Your Deployment URL**
-   - After deployment, Vercel will provide you with a production URL
-   - Example: `https://travel-genie-xyz.vercel.app`
+   - Enable them for **Production**, **Preview**, and **Development**
+   - **Redeploy** after adding variables
 
 ### Note on Supabase in Production
 
-Core features (city search, trip viewing, events, weather, photos, maps) work in production. Supabase authentication features may have initialization issues in production builds. For class demonstration, the core functionality is fully operational.
+Core features (city search, trip viewing, events, weather, photos, maps) work in production. Supabase authentication may work better on Netlify due to different bundling approaches. If issues persist, core functionality remains fully operational.
 
 ## 🎯 For Class Assignment
 
 1. **GitHub Repository**: Make sure your repository is public on GitHub
-2. **Deploy to Vercel**: Follow the deployment steps above
-3. **Submit**: Your GitHub repo link + Vercel deployment URL
+2. **Deploy**: Try Netlify first (better Supabase support), or use Vercel
+3. **Submit**: Your GitHub repo link + deployment URL (Netlify or Vercel)
 
 ## 🔧 API Setup
 
