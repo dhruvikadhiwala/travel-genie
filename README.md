@@ -1,5 +1,7 @@
 # Travel Genie 🧞‍♂️
 
+**🌐 Live Demo:** [https://travel-genie-chi.vercel.app/](https://travel-genie-chi.vercel.app/)
+
 ## Project Description
 
 Travel Genie is a personalized trip explorer web application that unifies event discovery, points of interest, weather forecasts, and destination photography into a single, interactive trip planning interface. Instead of juggling multiple tabs and apps, users can explore everything they need for their trip in one place.
